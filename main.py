@@ -20,7 +20,7 @@ from logs import logging
 from bs4 import BeautifulSoup
 import saini as helper
 from utils import progress_bar
-from vars import API_ID, API_HASH, BOT_TOKEN, OWNER, CREDIT, AUTH_USERS, TOTAL_USERS
+from vars import API_ID, API_HASH, BOT_TOKEN, OWNER, CREDIT, AUTH_USERS
 from aiohttp import ClientSession
 from subprocess import getstatusoutput
 from pytube import YouTube
@@ -28,8 +28,8 @@ from aiohttp import web
 import random
 from pyromod import listen
 from pyrogram import Client, filters
-from pyrogram.types import Message, InputMediaPhoto
-from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked, InputUserDeactivated
+from pyrogram.types import Message
+from pyrogram.errors import FloodWait
 from pyrogram.errors.exceptions.bad_request_400 import StickerEmojiInvalid
 from pyrogram.types.messages_and_media import message
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -47,10 +47,6 @@ bot = Client(
     bot_token=BOT_TOKEN
 )
 
-processing_request = False
-cancel_requested = False
-cancel_message = None
-
 cookies_file_path = os.getenv("cookies_file_path", "youtube_cookies.txt")
 api_url = "http://master-api-v3.vercel.app/"
 api_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNzkxOTMzNDE5NSIsInRnX3VzZXJuYW1lIjoi4p61IFtvZmZsaW5lXSIsImlhdCI6MTczODY5MjA3N30.SXzZ1MZcvMp5sGESj0hBKSghhxJ3k1GTWoBUbivUe1I"
@@ -63,131 +59,59 @@ photozip = 'https://envs.sh/cD_.jpg'
 
 
 # Inline keyboard for start command
-BUTTONSCONTACT = InlineKeyboardMarkup([[InlineKeyboardButton(text="📞 Contact", url="https://t.me/Go_gpa")]])
+BUTTONSCONTACT = InlineKeyboardMarkup([[InlineKeyboardButton(text="📞 Contact", url="https://t.me/daddyfrrr")]])
 keyboard = InlineKeyboardMarkup(
     [
-        [InlineKeyboardButton(text="🛠️ Help", url="https://t.me/go_gpa"), InlineKeyboardButton(text="🛠️ Repo", url="https://github.com/none")],
+        [
+            InlineKeyboardButton(text="🛠️ Help", url="https://t.me/daddyfrrr"),
+            InlineKeyboardButton(text="🛠️ Repo", url="https://t.me/daddyfrrr"),
+        ],
     ]
 )
 
 # Image URLs for the random image feature
 image_urls = [
-    "https://tinypic.host/images/2025/02/07/IMG_20250207_224444_975.jpg",
-    "https://tinypic.host/images/2025/02/07/DeWatermark.ai_1738952933236-1.png",
+    "https://iili.io/F57zSDv.md.jpg",
     # Add more image URLs as needed
 ]
 
 @bot.on_message(filters.command("addauth") & filters.private)
 async def add_auth_user(client: Client, message: Message):
     if message.chat.id != OWNER:
-        return 
+        return await message.reply_text("You are not authorized to use this command.")
+    
     try:
         new_user_id = int(message.command[1])
         if new_user_id in AUTH_USERS:
-            await message.reply_text("**User ID is already authorized.**")
+            await message.reply_text("User ID is already authorized.")
         else:
             AUTH_USERS.append(new_user_id)
-            await message.reply_text(f"**User ID `{new_user_id}` added to authorized users.**")
+            await message.reply_text(f"User ID {new_user_id} added to authorized users.")
     except (IndexError, ValueError):
-        await message.reply_text("**Please provide a valid user ID.**")
+        await message.reply_text("Please provide a valid user ID.")
 
 @bot.on_message(filters.command("users") & filters.private)
 async def list_auth_users(client: Client, message: Message):
     if message.chat.id != OWNER:
-        return
+        return await message.reply_text("You are not authorized to use this command.")
     
-    user_list = '\n'.join(map(str, AUTH_USERS))  # AUTH_USERS ki list dikhayenge
-    await message.reply_text(f"**Authorized Users:**\n{user_list}")
+    user_list = '\n'.join(map(str, get_all_user_ids()))  # Get user IDs from MongoDB
+    await message.reply_text(f"Authorized Users:\n{user_list}")
 
 @bot.on_message(filters.command("rmauth") & filters.private)
 async def remove_auth_user(client: Client, message: Message):
     if message.chat.id != OWNER:
-        return
+        return await message.reply_text("You are not authorized to use this command.")
     
     try:
         user_id_to_remove = int(message.command[1])
         if user_id_to_remove not in AUTH_USERS:
-            await message.reply_text("**User ID is not in the authorized users list.**")
+            await message.reply_text("User ID is not in the authorized users list.")
         else:
             AUTH_USERS.remove(user_id_to_remove)
-            await message.reply_text(f"**User ID `{user_id_to_remove}` removed from authorized users.**")
+            await message.reply_text(f"User ID {user_id_to_remove} removed from authorized users.")
     except (IndexError, ValueError):
-        await message.reply_text("**Please provide a valid user ID.**")
-
-
-@bot.on_message(filters.command("broadcast") & filters.private)
-async def broadcast_handler(client: Client, message: Message):
-    if message.chat.id != OWNER:
-        return
-    if not message.reply_to_message:
-        await message.reply_text("**Reply to any message (text, photo, video, or file) with /broadcast to send it to all users.**")
-        return
-    success = 0
-    fail = 0
-    for user_id in list(set(TOTAL_USERS)):
-        try:
-            # Text
-            if message.reply_to_message.text:
-                await client.send_message(user_id, message.reply_to_message.text)
-            # Photo
-            elif message.reply_to_message.photo:
-                await client.send_photo(
-                    user_id,
-                    photo=message.reply_to_message.photo.file_id,
-                    caption=message.reply_to_message.caption or ""
-                )
-            # Video
-            elif message.reply_to_message.video:
-                await client.send_video(
-                    user_id,
-                    video=message.reply_to_message.video.file_id,
-                    caption=message.reply_to_message.caption or ""
-                )
-            # Document
-            elif message.reply_to_message.document:
-                await client.send_document(
-                    user_id,
-                    document=message.reply_to_message.document.file_id,
-                    caption=message.reply_to_message.caption or ""
-                )
-            else:
-                await client.forward_messages(user_id, message.chat.id, message.reply_to_message.message_id)
-
-            success += 1
-        except (FloodWait, PeerIdInvalid, UserIsBlocked, InputUserDeactivated):
-            fail += 1
-            continue
-        except Exception as e:
-            fail += 1
-            continue
-
-    await message.reply_text(f"<b>Broadcast complete!</b>\n<blockquote><b>✅ Success: {success}\n❎ Failed: {fail}</b></blockquote>")
-
-@bot.on_message(filters.command("broadusers") & filters.private)
-async def broadusers_handler(client: Client, message: Message):
-    if message.chat.id != OWNER:
-        return
-
-    if not TOTAL_USERS:
-        await message.reply_text("**No Broadcasted User**")
-        return
-
-    user_infos = []
-    for user_id in list(set(TOTAL_USERS)):
-        try:
-            user = await client.get_users(int(user_id))
-            fname = user.first_name if user.first_name else " "
-            user_infos.append(f"[{user.id}](tg://openmessage?user_id={user.id}) | `{fname}`")
-        except Exception:
-            user_infos.append(f"[{user.id}](tg://openmessage?user_id={user.id})")
-
-    total = len(user_infos)
-    text = (
-        f"<blockquote><b>Total Users: {total}</b></blockquote>\n\n"
-        "<b>Users List:</b>\n"
-        + "\n".join(user_infos)
-    )
-    await message.reply_text(text)
+        await message.reply_text("Please provide a valid user ID.")
     
         
 @bot.on_message(filters.command("cookies") & filters.private)
@@ -351,22 +275,15 @@ async def yt2m_handler(bot: Client, m: Message):
                     await bot.send_document(chat_id=m.chat.id, document=f'{name}.mp3', caption=f'**🎵 Title : **  {name}.mp3\n\n🔗**Video link** : {url}\n\n🌟** Extracted By** : {CREDIT}')
                     os.remove(f'{name}.mp3')
                 except Exception as e:
-                    await editable.delete()
-                    await m.reply_text(f'⚠️**Downloading Failed**⚠️\n**Name** =>> `{name}`\n**Url** =>> {url}\n\n**Failed Reason:**\n<blockquote>{str(e)}</blockquote>', disable_web_page_preview=True)
-           
+                    print(f"Error sending document: {str(e)}")
             else:
-                await editable.delete()
-                await m.reply_text(f'⚠️**Downloading Failed**⚠️\n**Name** =>> `{name}`\n**Url** =>> {url}', disable_web_page_preview=True)
-           
+                print(f"File {name}.mp3 does not exist.")
     except Exception as e:
         await m.reply_text(f"**Failed Reason:**\n<blockquote>{str(e)}</blockquote>")
 
 
 @bot.on_message(filters.command(["ytm"]))
 async def txt_handler(bot: Client, m: Message):
-    global processing_request, cancel_requested, cancel_message
-    processing_request = True
-    cancel_requested = False
     editable = await m.reply_text("🔹**Send me the TXT file containing YouTube links.**")
     input: Message = await bot.listen(editable.chat.id)
     x = await input.download()
@@ -382,30 +299,29 @@ async def txt_handler(bot: Client, m: Message):
             links.append(i.split("://", 1))
         os.remove(x)
     except:
-        await m.reply_text("**Invalid file input.**")
+        await m.reply_text("Invalid file input.")
         os.remove(x)
         return
 
-  
-    await editable.edit(f"🔹**ᴛᴏᴛᴀʟ 🔗 ʟɪɴᴋs ғᴏᴜɴᴅ ᴀʀᴇ --__{len(links)}__--\n🔹sᴇɴᴅ ғʀᴏᴍ ᴡʜᴇʀᴇ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ**")
+    await m.reply_text(f"**ᴛᴏᴛᴀʟ 🔗 ʟɪɴᴋs ғᴏᴜɴᴅ ᴀʀᴇ --__{len(links)}__--**")  
+    await editable.edit("**🔹sᴇɴᴅ ғʀᴏᴍ ᴡʜᴇʀᴇ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ**")
     try:
         input0: Message = await bot.listen(editable.chat.id, timeout=10)
         raw_text = input0.text
         await input0.delete(True)
     except asyncio.TimeoutError:
         raw_text = '1' 
-        
-    await editable.delete()      
-    await m.reply_text(f"<blockquote><b>{file_name}</b></blockquote>")
+        await editable.delete()
+        try:
+            arg = int(raw_text)
+        except:
+            arg = 1
+
+    await m.reply_text(f"**⚡Dᴏᴡɴʟᴏᴀᴅɪɴɢ Sᴛᴀʀᴛᴇᴅ...⏳**")
     count = int(raw_text)
-    arg = int(raw_text)
     try:
         for i in range(arg-1, len(links)):  # Iterate over each link
-            if cancel_requested:
-                await m.reply_text("🚦**STOPPED**🚦")
-                processing_request = False
-                cancel_requested = False
-                return
+
             Vxy = links[i][1].replace("www.youtube-nocookie.com/embed", "youtu.be")
             url = "https://" + Vxy
 
@@ -413,29 +329,22 @@ async def txt_handler(bot: Client, m: Message):
             name = f'{name1[:60]} {CREDIT}'
 
             if "youtube.com" in url or "youtu.be" in url:
-                prog = await m.reply_text(f"<i><b>Audio Downloading</b></i>\n<blockquote><b>{str(count).zfill(3)}) {name1}</b></blockquote>")
                 cmd = f'yt-dlp -x --audio-format mp3 --cookies {cookies_file_path} "{url}" -o "{name}.mp3"'
                 print(f"Running command: {cmd}")
                 os.system(cmd)
                 if os.path.exists(f'{name}.mp3'):
-                    await prog.delete(True)
-                    print(f"File {name}.mp3 exists, attempting to send...")
-                    try:
-                        await bot.send_document(chat_id=m.chat.id, document=f'{name}.mp3', caption=f'**🎵 Title : **  {name}.mp3\n\n🔗**Video link** : {url}\n\n🌟** Extracted By** : {CREDIT}')
-                        os.remove(f'{name}.mp3')
-                        count+=1
-                    except Exception as e:
-                        await m.reply_text(f'⚠️**Downloading Failed**⚠️\n**Name** =>> `{str(count).zfill(3)} {name1}`\n**Url** =>> {url}', disable_web_page_preview=True)
-                        count+=1
+                   print(f"File {name}.mp3 exists, attempting to send...")
+                   try:
+                       await bot.send_document(chat_id=m.chat.id, document=f'{name}.mp3', caption=f'**🎵 Title : **  {name}.mp3\n\n🔗**Video link** : {url}\n\n🌟** Extracted By** : {CREDIT}')
+                       os.remove(f'{name}.mp3')
+                   except Exception as e:
+                       print(f"Error sending document: {str(e)}")
                 else:
-                    await prog.delete(True)
-                    await m.reply_text(f'⚠️**Downloading Failed**⚠️\n**Name** =>> `{str(count).zfill(3)} {name1}`\n**Url** =>> {url}', disable_web_page_preview=True)
-                    count+=1
-                               
+                     print(f"File {name}.mp3 does not exist.")                
     except Exception as e:
         await m.reply_text(f"<b>Failed Reason:</b>\n<blockquote><b>{str(e)}</b></blockquote>")
     finally:
-        await m.reply_text("<blockquote><b>All YouTube Music Download Successfully</b></blockquote>")
+        await m.reply_text("🕊️Done Baby💞")
 
 
 m_file_path= "main.py"
@@ -461,7 +370,7 @@ async def getcookies_handler(client: Client, m: Message):
     except Exception as e:
         await m.reply_text(f"⚠️ An error occurred: {str(e)}")
 
-@bot.on_message(filters.command(["resat"]) )
+@bot.on_message(filters.command(["stop"]) )
 async def restart_handler(_, m):
     if m.chat.id not in AUTH_USERS:
         print(f"User ID not in AUTH_USERS", m.chat.id)
@@ -473,33 +382,17 @@ async def restart_handler(_, m):
             f"__**Your User id** __- `{m.chat.id}`</blockquote>\n\n"
         )
     else:
-        await m.reply_text("🚦**RESAT & RESTARTED**🚦", True)
+        await m.reply_text("🚦**STOPPED**🚦", True)
         os.execl(sys.executable, sys.executable, *sys.argv)
-
-@bot.on_message(filters.command("stop") & filters.private)
-async def cancel_handler(client: Client, m: Message):
-    global processing_request, cancel_requested
-    if processing_request:
-        cancel_requested = True
-        await m.delete()
-        cancel_message = await m.reply_text("**🚦 Process cancel request received. Stopping after current process...**")
-    else:
-        cancel_message = None
-        await m.reply_text("**⚡ No active process to cancel.**")
+        
 
 @bot.on_message(filters.command("start"))
 async def start(bot, m: Message):
-    user_id = m.chat.id
-    if user_id not in TOTAL_USERS:
-        TOTAL_USERS.append(user_id)
     user = await bot.get_me()
-
     mention = user.mention
-    caption = f"🌟 Welcome {m.from_user.mention} ! 🌟"
-    start_message = await bot.send_photo(
-        chat_id=m.chat.id,
-        photo="https://tinypic.host/images/2025/07/14/Logo-1.jpg",
-        caption=caption
+    start_message = await bot.send_message(
+        m.chat.id,
+        f"🌟 Welcome {m.from_user.first_name}! 🌟\n\n"
     )
 
     await asyncio.sleep(1)
@@ -532,127 +425,44 @@ async def start(bot, m: Message):
 
     await asyncio.sleep(1)
     if m.chat.id in AUTH_USERS:
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💎 Features", callback_data="feat_command")],
-            [InlineKeyboardButton("USER CMD", callback_data="user_command"), InlineKeyboardButton("OWNER CMD", callback_data="owner_command")],
-            [InlineKeyboardButton("🎫 plans", callback_data="upgrade_command")],
-            [InlineKeyboardButton(text="📞 Contact", url=f"tg://openmessage?user_id={OWNER}"), InlineKeyboardButton(text="🛠️ Repo", url="https://github.com/nikhilsainiop/saini-txt-direct")],
-        ])
-        
         await start_message.edit_text(
             f"🌟 Welcome {m.from_user.first_name}! 🌟\n\n" +
             f"Great! You are a premium member!\n"
-            f"Use button : __**USER CMD**__ to get started 🌟\n\n"
-            f"If you face any problem contact -  [{CREDIT}⁬](tg://openmessage?user_id={OWNER})\n", disable_web_page_preview=True, reply_markup=keyboard
+            f"Use Command : /help to get started 🌟\n\n"
+            f"If you face any problem contact -  [{CREDIT}](https://t.me/daddyfrrr)\n", disable_web_page_preview=True, reply_markup=BUTTONSCONTACT
         )
     else:
         await asyncio.sleep(2)
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💎 Features", callback_data="feat_command")],
-            [InlineKeyboardButton("USER CMD", callback_data="user_command"), InlineKeyboardButton("OWNER CMD", callback_data="owner_command")],
-            [InlineKeyboardButton("🎫 plans", callback_data="upgrade_command")],
-            [InlineKeyboardButton(text="📞 Contact", url=f"tg://openmessage?user_id={OWNER}"), InlineKeyboardButton(text="🛠️ Repo", url="https://github.com/nikhilsainiop/saini-txt-direct")],
-        ])
         await start_message.edit_text(
            f" 🎉 Welcome {m.from_user.first_name} to DRM Bot! 🎉\n\n"
-           f"**You are currently using the free version.** 🆓\n\n<blockquote expandable>I'm here to make your life easier by downloading videos from your **.txt** file 📄 and uploading them directly to Telegram!</blockquote>\n\n**Want to get started? Press /id**\n\n💬 Contact : [{CREDIT}⁬](tg://openmessage?user_id={OWNER}) to Get The Subscription 🎫 and unlock the full potential of your new bot! 🔓\n", disable_web_page_preview=True, reply_markup=keyboard
-    )
-
-@bot.on_callback_query(filters.regex("back_to_main_menu"))
-async def back_to_main_menu(client, callback_query):
-    user_id = callback_query.from_user.id
-    first_name = callback_query.from_user.first_name
-    caption = f"✨ **Welcome [{first_name}](tg://user?id={user_id}) in My uploader bot**"
-    keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💎 Features", callback_data="feat_command")],
-            [InlineKeyboardButton("USER CMD", callback_data="user_command"), InlineKeyboardButton("OWNER CMD", callback_data="owner_command")],
-        [InlineKeyboardButton("🎫 plans", callback_data="upgrade_command")],
-            [InlineKeyboardButton(text="📞 Contact", url=f"tg://openmessage?user_id={OWNER}"), InlineKeyboardButton(text="🛠️ Repo", url="https://github.com/nikhilsainiop/saini-txt-direct")],
-        ])
-    
-    await callback_query.message.edit_media(
-      InputMediaPhoto(
-        media="https://envs.sh/GVI.jpg",
-        caption=caption
-      ),
-      reply_markup=keyboard
-    )
-    await callback_query.answer()  
-
-@bot.on_callback_query(filters.regex("user_command"))
-async def help_button(client, callback_query):
-  user_id = callback_query.from_user.id
-  first_name = callback_query.from_user.first_name
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main_menu")]])
-  caption = (
-        f"💥 𝐁𝐎𝐓𝐒 𝐂𝐎𝐌𝐌𝐀𝐍𝐃𝐒\n"
-        f"▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n" 
-        f"📌 𝗠𝗮𝗶𝗻 𝗙𝗲𝗮𝘁𝘂𝗿𝗲𝘀:\n\n"  
-        f"➥ /start – Bot Status Check\n"
-        f"➥ /drm – Extract from .txt (Auto)\n"
-        f"➥ /y2t – YouTube → .txt Converter\n"  
-        f"➥ /ytm – YT .txt → .mp3 downloader\n"  
-        f"➥ /yt2m – YT link → .mp3 downloader\n"  
-        f"➥ /t2t – Text → .txt Generator\n" 
-        f"➥ /stop – Cancel Running Task\n"
-        f"▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ \n" 
-        f"⚙️ 𝗧𝗼𝗼𝗹𝘀 & 𝗦𝗲𝘁𝘁𝗶𝗻𝗴𝘀: \n\n" 
-        f"➥ /cookies – Update YT Cookies\n" 
-        f"➥ /id – Get Chat/User ID\n"  
-        f"➥ /info – User Details\n"  
-        f"➥ /logs – View Bot Activity\n"
-        f"▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
-        f"💡 𝗡𝗼𝘁𝗲:\n\n"  
-        f"• Send any link for auto-extraction\n"  
-        f"• Supports batch processing\n\n"  
-        f"╭────────⊰◆⊱────────╮\n"   
-        f" ➠ 𝐌𝐚𝐝𝐞 𝐁𝐲 : {CREDIT} 💻\n"
-        f"╰────────⊰◆⊱────────╯\n"
-  )
-    
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://tinypic.host/images/2025/07/14/file_00000000fc2461fbbdd6bc500cecbff8_conversation_id6874702c-9760-800e-b0bf-8e0bcf8a3833message_id964012ce-7ef5-4ad4-88e0-1c41ed240c03-1-1.jpg",
-      caption=caption
-    ),
-    reply_markup=keyboard
-    )
-
-@bot.on_callback_query(filters.regex("owner_command"))
-async def help_button(client, callback_query):
-  user_id = callback_query.from_user.id
-  first_name = callback_query.from_user.first_name
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main_menu")]])
-  caption = (
-        f"👤 𝐁𝐨𝐭 𝐎𝐰𝐧𝐞𝐫 𝐂𝐨𝐦𝐦𝐚𝐧𝐝𝐬\n\n" 
-        f"➥ /addauth xxxx – Add User ID\n" 
-        f"➥ /rmauth xxxx – Remove User ID\n"  
-        f"➥ /users – Total User List\n"  
-        f"➥ /broadcast – For Broadcasting\n"  
-        f"➥ /broadusers – All Broadcasting Users\n"  
-        f"➥ /resat – Resat Bot\n"
-        f"▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"  
-        f"╭────────⊰◆⊱────────╮\n"   
-        f" ➠ 𝐌𝐚𝐝𝐞 𝐁𝐲 : {CREDIT} 💻\n"
-        f"╰────────⊰◆⊱────────╯\n"
-  )
-    
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://tinypic.host/images/2025/07/14/file_00000000fc2461fbbdd6bc500cecbff8_conversation_id6874702c-9760-800e-b0bf-8e0bcf8a3833message_id964012ce-7ef5-4ad4-88e0-1c41ed240c03-1-1.jpg",
-      caption=caption
-    ),
-    reply_markup=keyboard
-  )
-
-@bot.on_callback_query(filters.regex("upgrade_command"))
-async def upgrade_button(client, callback_query):
-  user_id = callback_query.from_user.id
-  first_name = callback_query.from_user.first_name
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main_menu")]])
-  caption = (
-           f" 🎉 Welcome {first_name} to DRM Bot! 🎉\n\n"
            f"You can have access to download all Non-DRM+AES Encrypted URLs 🔐 including\n\n"
+           f"Use Command : /help to get started 🌟\n\n"
+           f"<blockquote>• 📚 Appx Zip+Encrypted Url\n"
+           f"• 🎓 Classplus DRM+ NDRM\n"
+           f"• 🧑‍🏫 PhysicsWallah DRM\n"
+           f"• 📚 CareerWill + PDF\n"
+           f"• 🎓 Khan GS\n"
+           f"• 🎓 Study Iq DRM\n"
+           f"• 🚀 APPX + APPX Enc PDF\n"
+           f"• 🎓 Vimeo Protection\n"
+           f"• 🎓 Brightcove Protection\n"
+           f"• 🎓 Visionias Protection\n"
+           f"• 🎓 Zoom Video\n"
+           f"• 🎓 Utkarsh Protection(Video + PDF)\n"
+           f"• 🎓 All Non DRM+AES Encrypted URLs\n"
+           f"• 🎓 MPD URLs if the key is known (e.g., Mpd_url?key=key XX:XX)</blockquote>\n\n"
+           f"🚀 You are not subscribed to any plan yet!\n\n"
+           f"<blockquote>💵 Monthly Plan: free</blockquote>\n\n"
+           f"If you want to buy membership of the bot, feel free to contact the Bot Admin.\n", disable_web_page_preview=True, reply_markup=keyboard
+    )
+
+@bot.on_message(filters.command(["upgrade"]))
+async def id_command(client, message: Message):
+    chat_id = message.chat.id
+    await message.reply_text(
+        f" 🎉 Welcome {message.from_user.first_name} to DRM Bot! 🎉\n\n"
+           f"You can have access to download all Non-DRM+AES Encrypted URLs 🔐 including\n\n"
+           f"Use Command : /help to get started 🌟\n\n"
            f"<blockquote>• 📚 Appx Zip+Encrypted Url\n"
            f"• 🎓 Classplus DRM+ NDRM\n"
            f"• 🧑‍🏫 PhysicsWallah DRM\n"
@@ -668,146 +478,9 @@ async def upgrade_button(client, callback_query):
            f"• 🎓 All Non DRM+AES Encrypted URLs\n"
            f"• 🎓 MPD URLs if the key is known (e.g., Mpd_url?key=key XX:XX)</blockquote>\n\n"
            f"<b>💵 Monthly Plan: free</b>\n\n"
-           f"If you want to buy membership of the bot, feel free to contact the Bot Admin.\n"
+           f"If you want to buy membership of the bot, feel free to contact the Bot Admin.\n", disable_web_page_preview=True, reply_markup=BUTTONSCONTACT
     )  
-    
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://envs.sh/GVI.jpg",
-      caption=caption
-    ),
-    reply_markup=keyboard
-    )
 
-@bot.on_callback_query(filters.regex("feat_command"))
-async def feature_button(client, callback_query):
-  caption = "**✨ My Premium BOT Features :**"
-  keyboard = InlineKeyboardMarkup([
-      [InlineKeyboardButton("📌 Auto Pin Batch Name", callback_data="pin_command")],
-      [InlineKeyboardButton("💧 Watermark", callback_data="watermark_command"), InlineKeyboardButton("🔄 Resat", callback_data="resat_command")],
-      [InlineKeyboardButton("🖨️ Bot Working Logs", callback_data="logs_command")],
-      [InlineKeyboardButton("🖋️ File Name", callback_data="custom_command"), InlineKeyboardButton("🏷️ Title", callback_data="titlle_command")],
-      [InlineKeyboardButton("🎥 YouTube", callback_data="yt_command")],
-      [InlineKeyboardButton("📝 Text File", callback_data="txt_maker_command"), InlineKeyboardButton("📢 Broadcast", callback_data="broadcast_command")],
-      [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main_menu")]
-  ])
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://tinypic.host/images/2025/07/14/file_000000002d44622f856a002a219cf27aconversation_id68747543-56d8-800e-ae47-bb6438a09851message_id8e8cbfb5-ea6c-4f59-974a-43bdf87130c0.png",
-      caption=caption
-    ),
-    reply_markup=keyboard
-  )
-
-@bot.on_callback_query(filters.regex("pin_command"))
-async def pin_button(client, callback_query):
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Feature", callback_data="feat_command")]])
-  caption = f"**Auto Pin 📌 Batch Name :**\n\nAutomatically Pins the Batch Name in Channel or Group, If Starting from the First Link."
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://tinypic.host/images/2025/07/14/file_000000002d44622f856a002a219cf27aconversation_id68747543-56d8-800e-ae47-bb6438a09851message_id8e8cbfb5-ea6c-4f59-974a-43bdf87130c0.png",
-      caption=caption
-      ),
-      reply_markup=keyboard
-  )
-    
-@bot.on_callback_query(filters.regex("watermark_command"))
-async def watermark_button(client, callback_query):
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Feature", callback_data="feat_command")]])
-  caption = f"**Custom Watermark :**\n\nSet Your Own Custom Watermark on Videos for Added Personalization."
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://tinypic.host/images/2025/07/14/file_000000002d44622f856a002a219cf27aconversation_id68747543-56d8-800e-ae47-bb6438a09851message_id8e8cbfb5-ea6c-4f59-974a-43bdf87130c0.png",
-      caption=caption
-      ),
-      reply_markup=keyboard
-  )
-
-
-@bot.on_callback_query(filters.regex("resat_command"))
-async def restart_button(client, callback_query):
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Feature", callback_data="feat_command")]])
-  caption = f"**🔄 Resat Command:**\n\nIf You Want to Resat Your Bot, Simply Use Command /resat."
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://tinypic.host/images/2025/07/14/file_000000002d44622f856a002a219cf27aconversation_id68747543-56d8-800e-ae47-bb6438a09851message_id8e8cbfb5-ea6c-4f59-974a-43bdf87130c0.png",
-      caption=caption
-      ),
-      reply_markup=keyboard
-  )
-
-@bot.on_callback_query(filters.regex("logs_command"))
-async def pin_button(client, callback_query):
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Feature", callback_data="feat_command")]])
-  caption = f"**🖨️ Bot Working Logs:**\n\n◆/logs - Bot Send Working Logs in .txt File."
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://tinypic.host/images/2025/07/14/file_000000002d44622f856a002a219cf27aconversation_id68747543-56d8-800e-ae47-bb6438a09851message_id8e8cbfb5-ea6c-4f59-974a-43bdf87130c0.png",
-      caption=caption
-      ),
-      reply_markup=keyboard
-    )
-
-@bot.on_callback_query(filters.regex("custom_command"))
-async def custom_button(client, callback_query):
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Feature", callback_data="feat_command")]])
-  caption = f"**🖋️ Custom File Name:**\n\nSupport for Custom Name before the File Extension.\nAdd name ..when txt is uploading"
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://tinypic.host/images/2025/07/14/file_000000002d44622f856a002a219cf27aconversation_id68747543-56d8-800e-ae47-bb6438a09851message_id8e8cbfb5-ea6c-4f59-974a-43bdf87130c0.png",
-      caption=caption
-      ),
-      reply_markup=keyboard
-  )
-
-@bot.on_callback_query(filters.regex("titlle_command"))
-async def titlle_button(client, callback_query):
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Feature", callback_data="feat_command")]])
-  caption = f"**Custom Title Feature :**\nAdd and customize titles at the starting\n**NOTE 📍 :** The Titile must enclosed within (Title), Best For appx's .txt file."
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://tinypic.host/images/2025/07/14/file_000000002d44622f856a002a219cf27aconversation_id68747543-56d8-800e-ae47-bb6438a09851message_id8e8cbfb5-ea6c-4f59-974a-43bdf87130c0.png",
-      caption=caption
-      ),
-      reply_markup=keyboard
-  )
-
-@bot.on_callback_query(filters.regex("broadcast_command"))
-async def pin_button(client, callback_query):
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Feature", callback_data="feat_command")]])
-  caption = f"**📢 Broadcasting Support:**\n\n◆/broadcast - 📢 Broadcast to All Users.\n◆/broadusers - 👁️ To See All Broadcasting User"
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://tinypic.host/images/2025/07/14/file_000000002d44622f856a002a219cf27aconversation_id68747543-56d8-800e-ae47-bb6438a09851message_id8e8cbfb5-ea6c-4f59-974a-43bdf87130c0.png",
-      caption=caption
-      ),
-      reply_markup=keyboard
-  )
-
-@bot.on_callback_query(filters.regex("txt_maker_command"))
-async def editor_button(client, callback_query):
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Feature", callback_data="feat_command")]])
-  caption = f"**🤖 Available Commands 🗓️**\n◆/t2t for text to .txt file\n"
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://tinypic.host/images/2025/07/14/file_000000002d44622f856a002a219cf27aconversation_id68747543-56d8-800e-ae47-bb6438a09851message_id8e8cbfb5-ea6c-4f59-974a-43bdf87130c0.png",
-      caption=caption
-      ),
-      reply_markup=keyboard
-  )
-
-@bot.on_callback_query(filters.regex("yt_command"))
-async def y2t_button(client, callback_query):
-  keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Feature", callback_data="feat_command")]])
-  caption = f"**YouTube Commands:**\n\n◆/ytm - 🎶 YT .txt → .mp3 downloader\n◆/yt2m - 🎵 YT link → .mp3 downloader\n◆/y2t - 🔪 YouTube Playlist or Web Search → .txt Converter"
-  await callback_query.message.edit_media(
-    InputMediaPhoto(
-      media="https://envs.sh/GVi.jpg",
-      caption=caption
-      ),
-      reply_markup=keyboard
-  )
-         
 @bot.on_message(filters.command(["id"]))
 async def id_command(client, message: Message):
     chat_id = message.chat.id
@@ -833,7 +506,40 @@ async def info(bot: Client, update: Message):
         reply_markup=BUTTONSCONTACT
     )
 
-
+@bot.on_message(filters.command(["help"]))
+async def txt_handler(client: Client, m: Message):
+    await bot.send_message(m.chat.id, text= (
+        f"💥 𝐁𝐎𝐓𝐒 𝐂𝐎𝐌𝐌𝐀𝐍𝐃𝐒\n"
+        f"▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n" 
+        f"📌 𝗠𝗮𝗶𝗻 𝗙𝗲𝗮𝘁𝘂𝗿𝗲𝘀:\n\n"  
+        f"➥ /start – Bot Status Check\n"
+        f"➥ /drm – Extract from .txt (Auto)\n"
+        f"➥ /y2t – YouTube → .txt Converter\n"  
+        f"➥ /ytm – YT .txt → .mp3 downloader\n"  
+        f"➥ /yt2m – YT link → .mp3 downloader\n"  
+        f"➥ /t2t – Text → .txt Generator\n" 
+        f"➥ /stop – Cancel Running Task\n"
+        f"▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰ \n" 
+        f"⚙️ 𝗧𝗼𝗼𝗹𝘀 & 𝗦𝗲𝘁𝘁𝗶𝗻𝗴𝘀: \n\n" 
+        f"➥ /cookies – Update YT Cookies\n" 
+        f"➥ /id – Get Chat/User ID\n"  
+        f"➥ /info – User Details\n"  
+        f"➥ /logs – View Bot Activity\n"
+        f"▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        f"👤 𝐔𝐬𝐞𝐫 𝐀𝐮𝐭𝐡𝐞𝐧𝐭𝐢𝐜𝐚𝐭𝐢𝐨𝐧: **(OWNER)**\n\n" 
+        f"➥ /addauth xxxx – Add User ID\n" 
+        f"➥ /rmauth xxxx – Remove User ID\n"  
+        f"➥ /users – Total User List\n"  
+        f"▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰▰\n"
+        f"💡 𝗡𝗼𝘁𝗲:\n\n"  
+        f"• Send any link for auto-extraction\n"  
+        f"• Supports batch processing\n\n"  
+        f"╭────────⊰◆⊱────────╮\n"   
+        f" ➠ 𝐌𝐚𝐝𝐞 𝐁𝐲 : {CREDIT} 💻\n"
+        f"╰────────⊰◆⊱────────╯\n"
+        )
+    )                    
+          
 @bot.on_message(filters.command(["logs"]))
 async def send_logs(client: Client, m: Message):  # Correct parameter name
     try:
@@ -842,14 +548,10 @@ async def send_logs(client: Client, m: Message):  # Correct parameter name
             await m.reply_document(document=file)
             await sent.delete()
     except Exception as e:
-        await m.reply_text(f"**Error sending logs:**\n<blockquote>{e}</blockquote>")
-
+        await m.reply_text(f"Error sending logs: {e}")
 
 @bot.on_message(filters.command(["drm"]) )
 async def txt_handler(bot: Client, m: Message):  
-    global processing_request, cancel_requested, cancel_message
-    processing_request = True
-    cancel_requested = False
     if m.chat.id not in AUTH_USERS:
             print(f"User ID not in AUTH_USERS", m.chat.id)
             await bot.send_message(m.chat.id, f"<blockquote>__**Oopss! You are not a Premium member\nPLEASE /upgrade YOUR PLAN\nSend me your user id for authorization\nYour User id**__ - `{m.chat.id}`</blockquote>\n")
@@ -960,7 +662,7 @@ async def txt_handler(bot: Client, m: Message):
     except Exception:
             res = "UN"
 
-    await editable.edit(f"**Enter the Credit Name or send /d\n\n<blockquote><b>Format:</b>\n🔹Send __Admin__ only for caption\n🔹Send __Admin,filename__ for caption and file...Separate them with a comma (,)</blockquote>**")
+    await editable.edit(f"**Enter the Credit Name or send /d\n\n<blockquote>Format:\nSend __Admin__ only for caption\nSend __Admin,filename__ for caption and file\nSeparate them with a comma (,)</blockquote>**")
     try:
         input3: Message = await bot.listen(editable.chat.id, timeout=20)
         raw_text3 = input3.text
@@ -975,7 +677,7 @@ async def txt_handler(bot: Client, m: Message):
     else:
         CR = raw_text3
 
-    await editable.edit("**Enter 𝐏𝐖/𝐂𝐖/𝐂𝐏 Working Token For 𝐌𝐏𝐃 𝐔𝐑𝐋 or send /d**")
+    await editable.edit("**Enter __PW/CP/CW__ Working Token For 𝐌𝐏𝐃 𝐔𝐑𝐋 or send /d**")
     try:
         input4: Message = await bot.listen(editable.chat.id, timeout=20)
         raw_text4 = input4.text
@@ -1042,12 +744,6 @@ async def txt_handler(bot: Client, m: Message):
     arg = int(raw_text)
     try:
         for i in range(arg-1, len(links)):
-            if cancel_requested:
-                await m.reply_text("🚦**STOPPED**🚦")
-                processing_request = False
-                cancel_requested = False
-                return
-  
             Vxy = links[i][1].replace("file/d/","uc?export=download&id=").replace("www.youtube-nocookie.com/embed", "youtu.be").replace("?modestbranding=1", "").replace("/view?usp=sharing","")
             url = "https://" + Vxy
             link0 = "https://" + Vxy
@@ -1069,24 +765,17 @@ async def txt_handler(bot: Client, m: Message):
 
             elif "https://cpvod.testbook.com/" in url:
                 url = url.replace("https://cpvod.testbook.com/","https://media-cdn.classplusapp.com/drm/")
-                url = f"https://team-jnc-ba95987c225e.herokuapp.com/api?url={url}"
-                #url = f"https://scammer-keys.vercel.app/api?url={url}&token={cptoken}&auth=@scammer_botxz1"
+                url = f"https://scammer-keys.vercel.app/api?url={url}&token={cptoken}&auth=@scammer_botxz1"
                 mpd, keys = helper.get_mps_and_keys(url)
                 url = mpd
                 keys_string = " ".join([f"--key {key}" for key in keys])
 
             elif "classplusapp.com/drm/" in url:
-                url = f"https://team-jnc-ba95987c225e.herokuapp.com/api?url={url}"
-                #url = f"https://scammer-keys.vercel.app/api?url={url}&token={cptoken}&auth=@scammer_botxz1"
+                url = f"https://scammer-keys.vercel.app/api?url={url}&token={cptoken}&auth=@scammer_botxz1"
                 mpd, keys = helper.get_mps_and_keys(url)
                 url = mpd
                 keys_string = " ".join([f"--key {key}" for key in keys])
 
-            elif "classplusapp" in url:
-                signed_api = f"https://team-jnc-n-drm.vercel.app/api?url={url}"
-                response = requests.get(signed_api, timeout=10)
-                url = response.text.strip()
-                
             elif "tencdn.classplusapp" in url:
                 headers = {'host': 'api.classplusapp.com', 'x-access-token': f'{cptoken}', 'accept-language': 'EN', 'api-version': '18', 'app-version': '1.4.73.2', 'build-number': '35', 'connection': 'Keep-Alive', 'content-type': 'application/json', 'device-details': 'Xiaomi_Redmi 7_SDK-32', 'device-id': 'c28d3cb16bbdac01', 'region': 'IN', 'user-agent': 'Mobile-Android', 'webengage-luid': '00000187-6fe4-5d41-a530-26186858be4c', 'accept-encoding': 'gzip'}
                 params = {"url": f"{url}"}
@@ -1243,59 +932,21 @@ async def txt_handler(bot: Client, m: Message):
                         continue    
                     
                 elif 'encrypted.m' in url:    
-                    remaining_links = len(links) - count
-                    progress = (count / len(links)) * 100
-                    Show1 = f"<blockquote>🚀𝐏𝐫𝐨𝐠𝐫𝐞𝐬𝐬 » {progress:.2f}%</blockquote>\n┃\n" \
-                           f"┣🔗𝐈𝐧𝐝𝐞𝐱 » {count}/{len(links)}\n┃\n" \
-                           f"╰━🖇️𝐑𝐞𝐦𝐚𝐢𝐧 » {remaining_links}\n" \
-                           f"━━━━━━━━━━━━━━━━━━━━━━━━\n" \
-                           f"<blockquote><b>⚡Dᴏᴡɴʟᴏᴀᴅɪɴɢ Eɴᴄʀʏᴘᴛᴇᴅ Sᴛᴀʀᴛᴇᴅ...⏳</b></blockquote>\n┃\n" \
-                           f'┣💃𝐂𝐫𝐞𝐝𝐢𝐭 » {CR}\n┃\n' \
-                           f"╰━📚𝐁𝐚𝐭𝐜𝐡 » {b_name}\n" \
-                           f"━━━━━━━━━━━━━━━━━━━━━━━━━\n" \
-                           f"<blockquote>📚𝐓𝐢𝐭𝐥𝐞 » {name}</blockquote>\n┃\n" \
-                           f"┣🍁𝐐𝐮𝐚𝐥𝐢𝐭𝐲 » {quality}\n┃\n" \
-                           f'┣━🔗𝐋𝐢𝐧𝐤 » <a href="{link0}">**Original Link**</a>\n┃\n' \
-                           f'╰━━🖇️𝐔𝐫𝐥 » <a href="{url}">**Api Link**</a>\n' \
-                           f"━━━━━━━━━━━━━━━━━━━━━━━━━\n" \
-                           f"🛑**Send** /stop **to stop process**\n┃\n" \
-                           f"╰━✦𝐁𝐨𝐭 𝐌𝐚𝐝𝐞 𝐁𝐲 ✦ {CREDIT}"
-                    Show = f"<i><b>Video Downloading</b></i>\n<blockquote><b>{str(count).zfill(3)}) {name1}</b></blockquote>" 
+                    Show = f"<i><b>Video Downloading</b></i>\n<blockquote><b>{str(count).zfill(3)}) {name1}</b></blockquote>"
                     prog = await bot.send_message(channel_id, Show, disable_web_page_preview=True)
-                    prog1 = await m.reply_text(Show1, disable_web_page_preview=True)
                     res_file = await helper.download_and_decrypt_video(url, cmd, name, appxkey)  
                     filename = res_file  
-                    await prog1.delete(True)
-                    await prog.delete(True)
+                    await prog.delete(True)  
                     await helper.send_vid(bot, m, cc, filename, thumb, name, prog, channel_id)
                     count += 1  
                     await asyncio.sleep(1)  
                     continue  
 
                 elif 'drmcdni' in url or 'drm/wv' in url:
-                    remaining_links = len(links) - count
-                    progress = (count / len(links)) * 100
-                    Show1 = f"<blockquote>🚀𝐏𝐫𝐨𝐠𝐫𝐞𝐬𝐬 » {progress:.2f}%</blockquote>\n┃\n" \
-                           f"┣🔗𝐈𝐧𝐝𝐞𝐱 » {count}/{len(links)}\n┃\n" \
-                           f"╰━🖇️𝐑𝐞𝐦𝐚𝐢𝐧 » {remaining_links}\n" \
-                           f"━━━━━━━━━━━━━━━━━━━━━━━━\n" \
-                           f"<blockquote><b>⚡Dᴏᴡɴʟᴏᴀᴅɪɴɢ Eɴᴄʀʏᴘᴛᴇᴅ Sᴛᴀʀᴛᴇᴅ...⏳</b></blockquote>\n┃\n" \
-                           f'┣💃𝐂𝐫𝐞𝐝𝐢𝐭 » {CR}\n┃\n' \
-                           f"╰━📚𝐁𝐚𝐭𝐜𝐡 » {b_name}\n" \
-                           f"━━━━━━━━━━━━━━━━━━━━━━━━━\n" \
-                           f"<blockquote>📚𝐓𝐢𝐭𝐥𝐞 » {name}</blockquote>\n┃\n" \
-                           f"┣🍁𝐐𝐮𝐚𝐥𝐢𝐭𝐲 » {quality}\n┃\n" \
-                           f'┣━🔗𝐋𝐢𝐧𝐤 » <a href="{link0}">**Original Link**</a>\n┃\n' \
-                           f'╰━━🖇️𝐔𝐫𝐥 » <a href="{url}">**Api Link**</a>\n' \
-                           f"━━━━━━━━━━━━━━━━━━━━━━━━━\n" \
-                           f"🛑**Send** /stop **to stop process**\n┃\n" \
-                           f"╰━✦𝐁𝐨𝐭 𝐌𝐚𝐝𝐞 𝐁𝐲 ✦ {CREDIT}"
                     Show = f"<i><b>Video Downloading</b></i>\n<blockquote><b>{str(count).zfill(3)}) {name1}</b></blockquote>"
                     prog = await bot.send_message(channel_id, Show, disable_web_page_preview=True)
-                    prog1 = await m.reply_text(Show1, disable_web_page_preview=True)
                     res_file = await helper.decrypt_and_merge_video(mpd, keys_string, path, name, raw_text2)
                     filename = res_file
-                    await prog1.delete(True)
                     await prog.delete(True)
                     await helper.send_vid(bot, m, cc, filename, thumb, name, prog, channel_id)
                     count += 1
@@ -1303,29 +954,10 @@ async def txt_handler(bot: Client, m: Message):
                     continue
      
                 else:
-                    remaining_links = len(links) - count
-                    progress = (count / len(links)) * 100
-                    Show1 = f"<blockquote>🚀𝐏𝐫𝐨𝐠𝐫𝐞𝐬𝐬 » {progress:.2f}%</blockquote>\n┃\n" \
-                           f"┣🔗𝐈𝐧𝐝𝐞𝐱 » {count}/{len(links)}\n┃\n" \
-                           f"╰━🖇️𝐑𝐞𝐦𝐚𝐢𝐧 » {remaining_links}\n" \
-                           f"━━━━━━━━━━━━━━━━━━━━━━━━\n" \
-                           f"<blockquote><b>⚡Dᴏᴡɴʟᴏᴀᴅɪɴɢ Eɴᴄʀʏᴘᴛᴇᴅ Sᴛᴀʀᴛᴇᴅ...⏳</b></blockquote>\n┃\n" \
-                           f'┣💃𝐂𝐫𝐞𝐝𝐢𝐭 » {CR}\n┃\n' \
-                           f"╰━📚𝐁𝐚𝐭𝐜𝐡 » {b_name}\n" \
-                           f"━━━━━━━━━━━━━━━━━━━━━━━━━\n" \
-                           f"<blockquote>📚𝐓𝐢𝐭𝐥𝐞 » {name}</blockquote>\n┃\n" \
-                           f"┣🍁𝐐𝐮𝐚𝐥𝐢𝐭𝐲 » {quality}\n┃\n" \
-                           f'┣━🔗𝐋𝐢𝐧𝐤 » <a href="{link0}">**Original Link**</a>\n┃\n' \
-                           f'╰━━🖇️𝐔𝐫𝐥 » <a href="{url}">**Api Link**</a>\n' \
-                           f"━━━━━━━━━━━━━━━━━━━━━━━━━\n" \
-                           f"🛑**Send** /stop **to stop process**\n┃\n" \
-                           f"╰━✦𝐁𝐨𝐭 𝐌𝐚𝐝𝐞 𝐁𝐲 ✦ {CREDIT}"
                     Show = f"<i><b>Video Downloading</b></i>\n<blockquote><b>{str(count).zfill(3)}) {name1}</b></blockquote>"
                     prog = await bot.send_message(channel_id, Show, disable_web_page_preview=True)
-                    prog1 = await m.reply_text(Show1, disable_web_page_preview=True)
                     res_file = await helper.download_video(url, cmd, name)
                     filename = res_file
-                    await prog1.delete(True)
                     await prog.delete(True)
                     await helper.send_vid(bot, m, cc, filename, thumb, name, prog, channel_id)
                     count += 1
@@ -1360,6 +992,7 @@ async def text_handler(bot: Client, m: Message):
     if match:
         link = match.group(0)
     else:
+        await m.reply_text("<pre><code>Invalid link format.</code></pre>")
         return
         
     editable = await m.reply_text(f"<pre><code>**🔹Processing your link...\n🔁Please wait...⏳**</code></pre>")
@@ -1604,49 +1237,7 @@ async def text_handler(bot: Client, m: Message):
     except Exception as e:
         await m.reply_text(str(e))
 
-#...............…........
-def notify_owner():
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = {
-        "chat_id": OWNER,
-        "text": "𝐁𝐨𝐭 𝐑𝐞𝐬𝐚𝐭 𝐒𝐮𝐜𝐜𝐞𝐬𝐬𝐟𝐮𝐥𝐥𝐲 ✅"
-    }
-    requests.post(url, data=data)
 
-
-def reset_and_set_commands():
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/setMyCommands"
-    # Reset
-    requests.post(url, json={"commands": []})
-    # Set new
-    commands = [
-        {"command": "start", "description": "✅ Check Alive the Bot"},
-        {"command": "stop", "description": "🚫 Stop the ongoing process"},
-        {"command": "broadcast", "description": "📢 Broadcast to All Users"},
-        {"command": "broadusers", "description": "👨‍❤️‍👨 All Broadcasting Users"},
-        {"command": "help", "description": "👨‍🏭 Help about the Bot"},
-        {"command": "drm", "description": "📑 Upload .txt file"},
-        {"command": "cookies", "description": "📁 Upload YT Cookies"},
-        {"command": "y2t", "description": "🔪 YouTube → .txt Converter"},
-        {"command": "ytm", "description": "🎶 YT .txt → .mp3 downloader"},
-        {"command": "yt2m", "description": "🎵 YT link → .mp3 downloader"},
-        {"command": "t2t", "description": "📟 Text → .txt Generator"},
-        {"command": "resat", "description": "✅ Resat the Bot"},
-        {"command": "id", "description": "🆔 Get Your ID"},
-        {"command": "info", "description": "ℹ️ Check Your Information"},
-        {"command": "logs", "description": "👁️ View Bot Activity"},
-        {"command": "addauth", "description": "▶️ Add Authorisation"},
-        {"command": "rmauth", "description": "⏸️ Remove Authorisation "},
-        {"command": "users", "description": "👨‍👨‍👧‍👦 All Premium Users"}
-    ]
-    requests.post(url, json={"commands": commands})
-    
-
-
-
-if __name__ == "__main__":
-    reset_and_set_commands()
-    notify_owner() 
 
 
 bot.run()

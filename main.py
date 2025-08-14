@@ -63,10 +63,10 @@ photozip = 'https://envs.sh/cD_.jpg'
 
 
 # Inline keyboard for start command
-BUTTONSCONTACT = InlineKeyboardMarkup([[InlineKeyboardButton(text="📞 Contact", url="https://t.me/gp_gpa")]])
+BUTTONSCONTACT = InlineKeyboardMarkup([[InlineKeyboardButton(text="📞 Contact", url="https://t.me/saini_contact_bot")]])
 keyboard = InlineKeyboardMarkup(
     [
-        [InlineKeyboardButton(text="🛠️ Help", url="https://t.me/go_gpa"), InlineKeyboardButton(text="🛠️ Repo", url="Lund Lele Repo Lega")],
+        [InlineKeyboardButton(text="🛠️ Help", url="https://t.me/+3k-1zcJxINYwNGZl"), InlineKeyboardButton(text="🛠️ Repo", url="https://github.com/nikhilsainiop/saini-txt-direct")],
     ]
 )
 
@@ -987,7 +987,7 @@ async def txt_handler(bot: Client, m: Message):
     else:
         CR = raw_text3
 
-    await editable.edit("**Enter 𝐏𝐖/𝐂𝐖/𝐂𝐏 Working Token For 𝐌𝐏𝐃 𝐔𝐑𝐋 or send /d**")
+    await editable.edit("<b>Enter 𝐏𝐖/𝐂𝐖/𝐂𝐏 Working Token For 𝐌𝐏𝐃 𝐔𝐑𝐋 or send /d</b>\n<blockquote>If you are downloading Classplus Videos, make sure you joined @bots_updatee this channel</blockquote>")
     try:
         input4: Message = await bot.listen(editable.chat.id, timeout=20)
         raw_text4 = input4.text
@@ -1089,17 +1089,17 @@ async def txt_handler(bot: Client, m: Message):
 
             elif "https://cpvod.testbook.com/" in url or "classplusapp.com/drm/" in url:
                 url = url.replace("https://cpvod.testbook.com/","https://media-cdn.classplusapp.com/drm/")
-                #url = f"https://cpapi-rjbs-1l0p.onrender.com/extract_keys?url={url}@bots_updatee&user_id={user_id}"
-                url = f"https://scammer-keys.vercel.app/api?url={url}&token={cptoken}&auth=@scammer_botxz1"
+                url = f"https://cpapi-ytas.onrender.com/extract_keys?url={url}@bots_updatee&user_id={user_id}"
+                #url = f"https://scammer-keys.vercel.app/api?url={url}&token={cptoken}&auth=@scammer_botxz1"
                 mpd, keys = helper.get_mps_and_keys(url)
                 url = mpd
                 keys_string = " ".join([f"--key {key}" for key in keys])
 
-            #elif "classplusapp" in url:
-                #signed_api = f"https://cpapi-rjbs-1l0p.onrender.com/extract_keys?url={url}@bots_updatee&user_id={user_id}"
-                #response = requests.get(signed_api, timeout=20)
-                #url = response.text.strip()
-                #url = response.json()['url']  
+            elif "classplusapp" in url:
+                signed_api = f"https://cpapi-ytas.onrender.com/extract_keys?url={url}@bots_updatee&user_id={user_id}"
+                response = requests.get(signed_api, timeout=20)
+                url = response.text.strip()
+                url = response.json()['url']  
                     
             elif "tencdn.classplusapp" in url:
                 headers = {'host': 'api.classplusapp.com', 'x-access-token': f'{cptoken}', 'accept-language': 'EN', 'api-version': '18', 'app-version': '1.4.73.2', 'build-number': '35', 'connection': 'Keep-Alive', 'content-type': 'application/json', 'device-details': 'Xiaomi_Redmi 7_SDK-32', 'device-id': 'c28d3cb16bbdac01', 'region': 'IN', 'user-agent': 'Mobile-Android', 'webengage-luid': '00000187-6fe4-5d41-a530-26186858be4c', 'accept-encoding': 'gzip'}
@@ -1121,7 +1121,7 @@ async def txt_handler(bot: Client, m: Message):
                 url = url.split("bcov_auth")[0]+bcov
                 
             elif "childId" in url and "parentId" in url:
-                url = f"https://anonymouspwplayerr-f996115ea61a.herokuapp.com/pw?url={url}&token={pwtoken}"
+                url = f"https://anonymouspwplayer-0e5a3f512dec.herokuapp.com/pw?url={url}&token={pwtoken}"
                            
             elif "d1d34p8vz63oiq" in url or "sec1.pw.live" in url:
                 url = f"https://anonymouspwplayer-b99f57957198.herokuapp.com/pw?url={url}?token={pwtoken}"

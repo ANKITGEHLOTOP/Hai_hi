@@ -1024,7 +1024,7 @@ async def txt_handler(bot: Client, m: Message):
         else:
             b_name = raw_text0
      
-        await editable.edit("__**Enter resolution or Video Quality (`144`, `240`, `360`, `480`, `720`, `1080`)**__")
+        await editable.edit("__**Enter resolution or Video Quality (`144`, `240`, `360`, `480`, `720`, `1080`, `1440`)**__")
         try:
             input2: Message = await bot.listen(editable.chat.id, timeout=20)
             raw_text2 = input2.text
@@ -1045,7 +1045,9 @@ async def txt_handler(bot: Client, m: Message):
                 res = "1280x720"
             elif raw_text2 == "1080":
                 res = "1920x1080" 
-            else: 
+            elif raw_text2 == "1440":
+                res = "2560x1440"
+            else:
                 res = "UN"
         except Exception:
                 res = "UN"

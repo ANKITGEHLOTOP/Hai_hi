@@ -1010,7 +1010,7 @@ async def pdf_watermark_button(client, callback_query):
     ),
     reply_markup=keyboard
   )
- 
+ # .....,.....,.......,...,.......,....., .....,.....,.......,...,.......,.....,
 @bot.on_callback_query(filters.regex("quality_command"))
 async def handle_quality(client, callback_query):
     global raw_text2, quality, res

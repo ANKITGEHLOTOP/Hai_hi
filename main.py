@@ -1010,13 +1010,13 @@ async def pdf_watermark_button(client, callback_query):
     ),
     reply_markup=keyboard
   )
-# .....,.....,.......,...,.......,....., .....,.....,.......,...,.......,.....,
+ 
 @bot.on_callback_query(filters.regex("quality_command"))
 async def handle_quality(client, callback_query):
     global raw_text2, quality, res
     user_id = callback_query.from_user.id
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Settings", callback_data="setttings")]])
-    editable = await callback_query.message.edit("__**Enter resolution or Video Quality (`144`, `240`, `360`, `480`, `720`, `1080`) or Send /d**__", reply_markup=keyboard)
+    editable = await callback_query.message.edit("__**Enter resolution or Video Quality (`144`, `240`, `360`, `480`, `720`, `1080`, `2000`) or Send /d**__", reply_markup=keyboard)
     input_msg = await bot.listen(editable.chat.id)
     try:
         if input_msg.text.lower() == "144":
@@ -1049,10 +1049,19 @@ async def handle_quality(client, callback_query):
             quality = f"{raw_text2}p"
             res = '1920x1080'
             await editable.edit(f"✅ Video Quality set {quality} !", reply_markup=keyboard)
-        else:
-            raw_text2 = '480'
+        elif input_msg.text.lower() == "2000":
+            raw_text2 = 'await editable.edit(f"✅ Video Quality set {quality} !", reply_markup=keyboard)
+        elif input_msg.text.lower() == "1080":
+            raw_text2 = '1080'
             quality = f"{raw_text2}p"
-            res = '854x480'
+            res = '2560x1440'
+            quality = f"{raw_text2}p"
+            res = '2560x1440'
+            await editable.edit(f"✅ Video Quality set {quality} !", reply_markup=keyboard)
+        else:
+            raw_text2 = '720'
+            quality = f"{raw_text2}p"
+            res = '1280×720'
             await editable.edit(f"✅ Video Quality set {quality} as Default !", reply_markup=keyboard)
             
     except Exception as e:
@@ -1454,7 +1463,7 @@ async def universal_drm_handler(bot: Client, m: Message):
             b_name = '**Link Input**'
             await m.delete()
         else:
-            editable = await m.reply_text(f"╭━━━━❰ᴇɴᴛᴇʀ ʀᴇꜱᴏʟᴜᴛɪᴏɴ❱━━➣ \n┣━━⪼ send `144`  for 144p\n┣━━⪼ send `240`  for 240p\n┣━━⪼ send `360`  for 360p\n┣━━⪼ send `480`  for 480p\n┣━━⪼ send `720`  for 720p\n┣━━⪼ send `1080` for 1080p\n╰━━⌈⚡[🦋`{CREDIT}`🦋]⚡⌋━━➣ ")
+            editable = await m.reply_text(f"╭━━━━❰ᴇɴᴛᴇʀ ʀᴇꜱᴏʟᴜᴛɪᴏɴ❱━━➣ \n┣━━⪼ send `144`  for 144p\n┣━━⪼ send `240`  for 240p\n┣━━⪼ send `360`  for 360p\n┣━━⪼ send `480`  for 480p\n┣━━⪼ send `720`  for 720p\n┣━━⪼ send `1080` for 1080p\n \n┣━━⪼ send `2000`  for 1440p╰━━⌈⚡[🦋`{CREDIT}`🦋]⚡⌋━━➣ ")
             input2: Message = await bot.listen(editable.chat.id, filters=filters.text & filters.user(m.from_user.id))
             raw_text2 = input2.text
             quality = f"{raw_text2}p"
@@ -1472,7 +1481,9 @@ async def universal_drm_handler(bot: Client, m: Message):
                 elif raw_text2 == "720":
                     res = "1280x720"
                 elif raw_text2 == "1080":
-                    res = "1920x1080" 
+                    res = "1920x1080"
+                elif raw_text2 == "2000":
+                    res = "2560×1440"
                 else: 
                     res = "UN"
             except Exception:
@@ -1580,7 +1591,20 @@ async def universal_drm_handler(bot: Client, m: Message):
 
             if "edge.api.brightcove.com" in url:
                 bcov = f'bcov_auth={cwtoken}'
-                url = url.split("bcov_auth")[0]+bcov
+                url = url.split("bcov_auth")[0]+bcove
+                
+             elif "apps-s3-jw-prod.utkarshapp.com" in url:
+                if 'enc_plain_mp4' in url:
+                    url = url.replace(url.split("/")[-1], res+'.mp4')
+                    
+                elif 'Key-Pair-Id' in url:
+                    url = None
+                    
+                elif '.m3u8' in url:
+                    q = ((m3u8.loads(requests.get(url).text)).data['playlists'][1]['uri']).split("/")[0]
+                    x = url.split("/")[5]
+                    x = url.replace(x, "")
+                    url = ((m3u8.loads(requests.get(url).text)).data['playlists'][1]['uri']).replace(q+"/", x)
 
             #elif "d1d34p8vz63oiq" in url or "sec1.pw.live" in url:
             elif "childId" in url and "parentId" in url:

@@ -1050,8 +1050,6 @@ async def handle_quality(client, callback_query):
             res = '1920x1080'
             await editable.edit(f"✅ Video Quality set {quality} !", reply_markup=keyboard)
         elif input_msg.text.lower() == "2000":
-            raw_text2 = 'await editable.edit(f"✅ Video Quality set {quality} !", reply_markup=keyboard)
-        elif input_msg.text.lower() == "2000":
             raw_text2 = '2000'
             quality = f"{raw_text2}p"
             res = '2560x1440'
